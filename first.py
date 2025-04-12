@@ -17,12 +17,30 @@ headers = {
 
 par = {
     'pn':1,
-    'pz':1100
+    'pz':10
 }
 wb_data = requests.get(uri,headers=headers,params=par)
 # print(wb_data.text)
 # print(time.time())
 data = re.findall(r'\((.*?)\)',wb_data.text)
 # print(data[0])
-data1.insert_one(json.loads(data[0]))
+#data1.insert_one(json.loads(data[0]))
+
 print(json.dumps(json.loads(data[0]),ensure_ascii=False,indent=2))
+for j in json.loads(data[0])['data']['diff']:
+    data  = {}
+    data['最新价'] = j['f2']/1000
+    data['涨跌幅'] = j['f3']/10000
+    data['涨跌额'] = j['f4']/1000
+    data['成交量'] = j['f5']/10000 if not j['f5'] == '-' else 0
+    data['成交额'] = j['f6']/10000 if not j['f6'] == "-" else 0
+    data['代码'] = j['f12']
+    data['名称'] = j['f14']
+    data['最高价'] = j['f15']/1000 if not j['f5'] == '-' else 0
+    data['最低价'] = j['f16']/1000 if not j['f5'] == '-' else 0
+    data['开盘价'] = j['f17']/1000 if not j['f5'] == '-' else 0
+    data['咋收'] = j['f18']/1000
+    print(json.dumps(data,ensure_ascii=False,indent=2))
+
+
+#print(json.dumps(json.loads(data[0]),ensure_ascii=False,indent=2))

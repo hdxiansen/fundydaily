@@ -46,15 +46,16 @@ with open(r'et.csv','w',newline='',encoding='utf-8',)as f:
         #f18 咋收 /1000
         for j in i['data']['diff']:
             data  = {}
+            data['最新价'] = j['f2']/1000
             data['涨跌幅'] = j['f3']/1000
             data['涨跌额'] = j['f4']/1000
             data['成交量'] = j['f5']/10000 if not j['f5'] == '-' else 0
-            data['成交额'] = j['f6']/100000000 if not j['f6'] == "-" else 0
+            data['成交额'] = j['f6']/10000 if not j['f6'] == "-" else 0
             data['代码'] = j['f12']
             data['名称'] = j['f14']
-            data['最高价'] = j['f15']/10000 if not j['f5'] == '-' else 0
-            data['最低价'] = j['f16']/10000 if not j['f5'] == '-' else 0
-            data['开盘价'] = j['f17']/10000 if not j['f5'] == '-' else 0
+            data['最高价'] = j['f15']/1000 if not j['f5'] == '-' else 0
+            data['最低价'] = j['f16']/1000 if not j['f5'] == '-' else 0
+            data['开盘价'] = j['f17']/1000 if not j['f5'] == '-' else 0
             data['咋收'] = j['f18']/1000
             print(data)
             # csv_writer.writerow(j.values())

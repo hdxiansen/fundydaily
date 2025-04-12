@@ -26,7 +26,7 @@ class SMACrossover(bt.Strategy):
 # 通过 AKShare 获取沪深300指数数据
 def fetch_data():
     # 获取沪深300历史行情
-    df = ak.index_zh_a_hist(symbol="000300", period="daily", start_date="20240901", end_date="20250321")
+    df = ak.index_zh_a_hist(symbol="000300", period="daily", start_date="20250101", end_date="20250411")
     
     # 转换日期格式为 datetime，并设置为索引
     df['日期'] = pd.to_datetime(df['日期'])
