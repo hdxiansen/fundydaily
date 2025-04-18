@@ -1,6 +1,12 @@
+'''
+@time:2025年4月16日 16:26:30
+@author：何等先森
+@function：获取数据
+'''
 import requests
 import os
 import time
+import datetime
 import re
 import json
 import pymongo
@@ -17,18 +23,31 @@ headers = {
 
 par = {
     'pn':1,
-    'pz':10
+    'pz':1200 #1102
 }
+
 wb_data = requests.get(uri,headers=headers,params=par)
 # print(wb_data.text)
 # print(time.time())
 data = re.findall(r'\((.*?)\)',wb_data.text)
 # print(data[0])
-#data1.insert_one(json.loads(data[0]))
+
+wb_data_split = json.loads(data[0])
+wb_data_split['time'] = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())
+wb_data_split['date'] = time.strftime("%Y-%m-%d",time.localtime())
+data1.insert_one(wb_data_split)
+
+#wb_data_split的数据居然变了
+# t1 = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())
+# print(t1)
+# print(datetime.datetime.now())
+# print(time.localtime())
 
 print(json.dumps(json.loads(data[0]),ensure_ascii=False,indent=2))
-for j in json.loads(data[0])['data']['diff']:
+for j in wb_data_split['data']['diff']:
     data  = {}
+    # data['time'] = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())
+    # data['date'] = time.strftime("%Y-%m-%d",time.localtime())
     data['最新价'] = j['f2']/1000
     data['涨跌幅'] = j['f3']/10000
     data['涨跌额'] = j['f4']/1000
