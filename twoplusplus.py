@@ -6,133 +6,129 @@
 
 from pymongo import MongoClient
 from datetime import datetime, timedelta
+import csv
 
-client = MongoClient(host="192.168.0.53",port = 27017)
-db = client['etf']
-col = db['data0318']
+# client = MongoClient(host="192.168.0.53",port = 27017)
+# db = client['etf']
+# col = db['data0318']
 
-def get_time_windows(today_date, max_days=30):
-    """生成需要比较的时间窗口"""
-    base_date = datetime.strptime(today_date, "%Y-%m-%d")
+from pymongo import MongoClient
+from datetime import datetime, timedelta
+import csv
+
+# 配置参数
+MONGODB_URI = "mongodb://192.168.0.53:27017/"
+DB_NAME = "etf"
+COLLECTION_NAME = "data0318"
+CUSTOM_DAYS = [1, 2, 3, 5, 7, 10, 30]  # 自定义对比天数窗口
+BASE_FIELDS = [f"f{i}" for i in range(1, 19)]  # f1-f18基础字段
+DATE_FORMAT = "%Y-%m-%d"
+
+client = MongoClient(MONGODB_URI)
+db = client[DB_NAME]
+col = db[COLLECTION_NAME]
+
+def generate_date_windows(target_date):
+    """生成自定义日期映射表"""
+    base_date = datetime.strptime(target_date, DATE_FORMAT)
     return {
-        f"prev_{n}d": (base_date - timedelta(days=n)).strftime("%Y-%m-%d")
-        for n in range(1, max_days+1)
+        days: {
+            "date": (base_date - timedelta(days=days)).strftime(DATE_FORMAT),
+            "fields": {f: None for f in BASE_FIELDS}
+        }
+        for days in CUSTOM_DAYS
     }
 
-def fetch_comparison_data(target_date, lookback_days=30):
-    # 生成日期范围
-    date_ranges = get_time_windows(target_date, lookback_days)
-    all_dates = [target_date] + list(date_ranges.values())
+def fetch_full_data(target_date):
+    """获取完整数据集"""
+    date_list = [target_date] + [
+        (datetime.strptime(target_date, DATE_FORMAT) - timedelta(days=d)).strftime(DATE_FORMAT)
+        for d in CUSTOM_DAYS
+    ]
     
-    # 聚合查询（添加 f12 存在性检查）
     pipeline = [
-        {"$match": {"date": {"$in": all_dates}}},
+        {"$match": {"date": {"$in": date_list}}},
         {"$unwind": "$data.diff"},
-        {"$match": {"data.diff.f12": {"$exists": True}}},  # 确保 f12 存在
-        {"$addFields": {
-            "data.diff.date": "$date",
-            "data.diff.timestamp": {"$toDate": "$date"}
-        }},
+        {"$addFields": {"data.diff.parent_date": "$date"}},
         {"$replaceRoot": {"newRoot": "$data.diff"}},
-        {"$sort": {"timestamp": -1}},
         {"$group": {
             "_id": "$f12",
-            "history": {"$push": "$$ROOT"}
-        }},
-        {"$project": {
-            "f12": "$_id",
-            "history": 1,
-            "_id": 0
+            "records": {
+                "$push": {
+                    "date": "$parent_date",
+                    **{f: f"${f}" for f in BASE_FIELDS}
+                }
+            }
         }}
     ]
     
-    return list(col.aggregate(pipeline))
+    return {item["_id"]: item["records"] for item in col.aggregate(pipeline)}
 
-def build_comparison(target_date):
-    results = fetch_comparison_data(target_date, 30)
-    final_output = []
+def build_comparison_row(f12, records, target_date):
+    """构建带历史对比的数据行"""
+    # 获取当日数据
+    current = next((r for r in records if r["date"] == target_date), None)
+    if not current:
+        return None
     
-    for item in results:
-        # 健壮性检查：确保包含 history 字段
-        if 'history' not in item or not item['history']:
-            print(f"警告: 跳过无效条目 {item.get('f12', '未知')}")
-            continue
-        
-        # 按时间排序历史记录
-        sorted_history = sorted(
-            item['history'], 
-            key=lambda x: x['timestamp'], 
-            reverse=True
-        )
-        
-        # 提取当天数据
-        today_data = next(
-            (d for d in sorted_history if d['date'] == target_date),
-            None
-        )
-        
-        if not today_data:
-            continue
-        
-        # 构建比较结构
-        comparison = {
-            "metadata": {
-                "f12": item['f12'],
-                "f14": today_data.get('f14'),
-                "current_date": target_date
-            },
-            "current_data": {k: v for k, v in today_data.items() if k.startswith('f')},
-            "comparisons": {}
-        }
-        
-        # 生成历史比较
-        for n in range(1, 31):
-            prev_date = (datetime.strptime(target_date, "%Y-%m-%d") - timedelta(days=n)).strftime("%Y-%m-%d")
-            prev_data = next(
-                (d for d in sorted_history if d['date'] == prev_date),
-                None
-            )
-            
-            comparison['comparisons'][f"prev_{n}d"] = {
-                "date": prev_date,
-                "exists": bool(prev_data),
-                "f3": prev_data['f3'] if prev_data else None,
-                "f3_delta": today_data['f3'] - prev_data['f3'] if prev_data else None,
-                "f3_pct_change": (
-                    (today_data['f3'] - prev_data['f3']) / prev_data['f3'] * 100 
-                    if prev_data and prev_data['f3'] != 0 else None
-                ),
-                "full_data": prev_data if prev_data else None
-            }
-        
-        final_output.append(comparison)
+    row = {"f12": f12, "date": target_date}
     
-    return final_output
+    # 添加基础字段
+    for field in BASE_FIELDS:
+        row[field] = current.get(field)
+    
+    # 计算历史差值
+    date_map = {
+        r["date"]: r
+        for r in records
+        if r["date"] != target_date
+    }
+    
+    base_date = datetime.strptime(target_date, DATE_FORMAT)
+    for days in CUSTOM_DAYS:
+        hist_date = (base_date - timedelta(days=days)).strftime(DATE_FORMAT)
+        hist_data = date_map.get(hist_date, {})
+        
+        current_f3 = current.get("f3")
+        hist_f3 = hist_data.get("f3")
+        
+        delta = current_f3 - hist_f3 if None not in (current_f3, hist_f3) else None
+        row[f"f3_prev_{days}d_delta"] = delta
+    
+    return row
 
-# 使用示例 ---------------------------------------------------
+def export_full_dataset(target_date, filename):
+    """执行数据导出"""
+    full_data = fetch_full_data(target_date)
+    
+    # 生成CSV头
+    headers = ["f12", "date"] + BASE_FIELDS
+    headers += [f"f3_prev_{d}d_delta" for d in CUSTOM_DAYS]
+    
+    with open(filename, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=headers)
+        writer.writeheader()
+        
+        count = 0
+        for f12, records in full_data.items():
+            row = build_comparison_row(f12, records, target_date)
+            if row:
+                # 清理None值为空字符串
+                cleaned_row = {
+                    k: v if v is not None else "" 
+                    for k, v in row.items()
+                }
+                writer.writerow(cleaned_row)
+                count += 1
+                
+        print(f"成功导出{count}条记录")
+
+# 使用示例
 if __name__ == "__main__":
-    # 自动获取最新日期（或手动指定）
+    # 获取最新日期（示例）
     latest_date = col.find_one(
-        sort=[("date", -1)],
-        projection={"date": 1}
-    )['date']
-    
-    analysis_results = build_comparison(latest_date)
-    
-    # 打印结果
-    for result in analysis_results:
-        print(f"\n产品代码: {result['metadata']['f12']}")
-        print(f"当前日期: {result['metadata']['current_date']}")
-        print("今日数据:")
-        for key in sorted(result['current_data'].keys()):
-            print(f"  {key}: {result['current_data'][key]}")
-        
-        print("\n历史比较:")
-        for days in ['prev_1d', 'prev_7d', 'prev_30d']:  # 示例展示关键日期
-            comp = result['comparisons'].get(days)
-            if comp:
-                print(f"{days}:")
-                print(f"  日期: {comp['date']} | 数据存在: {'是' if comp['exists'] else '否'}")
-                print(f"  f3值: {comp['f3'] or 'N/A'}")
-                print(f"  变化量: {comp['f3_delta'] or 'N/A'}")
-                print(f"  变化率: {comp['f3_pct_change'] or 'N/A'}\n")
+        {"date": {"$exists": True}},
+        sort=[("date", -1)]
+    )["date"]
+    print(latest_date)
+    export_full_dataset(latest_date, "full_analysis_v2.csv")

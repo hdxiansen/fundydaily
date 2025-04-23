@@ -105,7 +105,7 @@ if __name__ == "__main__":
     start_date = "2025-04-01"
     end_date = "2025-04-30"
 
-    target_dates = ["2025-04-16", "2025-04-18",]
+    target_dates = ["2025-04-18", "2025-04-16",]
     
     # 获取比较结果
     results = compare_f3_values(target_dates,start_date,end_date)
@@ -117,10 +117,10 @@ if __name__ == "__main__":
         for date, value in result['f3_comparison'].items():
             print(f"  {date}: {value}")
         
-        # print("\n完整字段数据:")
-        # for date, data in result['full_data'].items():
-        #     print(f"\n日期 {date}:")
-        #     for key in sorted(data.keys()):
-        #         if key.startswith('f') and key[1:].isdigit():
-        #             print(f"  {key}: {data[key]}")
-    export_to_csv(results,'22.csv')
+        print("\n完整字段数据:")
+        for date, data in result['full_data'].items():
+            print(f"\n日期 {date}:")
+            for key in sorted(data.keys()):
+                if key.startswith('f') and key[1:].isdigit():
+                    print(f"  {key}: {data[key]}")
+    # export_to_csv(results,'22.csv')
