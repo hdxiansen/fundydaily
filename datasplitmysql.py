@@ -27,7 +27,8 @@ def createtale():
     print("Connection successful")
     #cjl BIGINT NOT NULL COMMENT \'成交量\',\
     sql_one = "CREATE TABLE if not exists etf (\
-        id VARCHAR(50) PRIMARY KEY COMMENT \'代码\',\
+        num INT AUTO_INCREMENT PRIMARY KEY,\
+        id VARCHAR(50) NOT NULL COMMENT \'代码\',\
         name VARCHAR(255) NOT NULL COMMENT \'ETF名称\',\
         zxj DECIMAL(10, 3) NOT NULL COMMENT \'最新价\',\
         zdf DECIMAL(5, 2) NOT NULL COMMENT \'涨跌幅\',\
@@ -48,7 +49,7 @@ def createtale():
     for i in cursor:
         print(i)
 
-    
+createtale()
 
 # # 示例字典数据（字段名与表结构一致）
 # dict_data = {

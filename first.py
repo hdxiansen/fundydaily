@@ -50,6 +50,7 @@ def get_data_daily(pn):
     #print(json.dumps(json.loads(data[0]),ensure_ascii=False,indent=2))
 def datatomysql(pn):
     datasplit = get_data_daily(pn)
+    print(datasplit)
     for j in datasplit['data']['diff']:
         data  = {}
         # data['time'] = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())

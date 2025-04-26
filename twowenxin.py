@@ -50,10 +50,12 @@ for interval_name, interval_days in intervals.items():
 latest_data = documents[0]['data']['diff'] if documents else []
 
 # 打印结果
-print("最新日期:", latest_date_str)
-print("f3字段在不同时间间隔内的总和:")
-for interval_name, total_sum in sums.items():
-    print(f"{interval_name}: {total_sum}")
-print("最新日期的完整数据:")
-for item in latest_data:
-    print(item)
+# print("最新日期:", latest_date_str)
+# print("f3字段在不同时间间隔内的总和:")
+# for interval_name, total_sum in sums.items():
+#     print(f"{interval_name}: {total_sum}")
+# print("最新日期的完整数据:")
+# for item in latest_data:
+#     print(item)
+
+time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())

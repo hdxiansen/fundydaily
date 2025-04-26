@@ -41,6 +41,7 @@ conn = mysql.connector.connect(
 )
 cursor = conn.cursor()
 
+today = time.strftime("%Y:%m:%d",time.localtime())
 with open(r'et.csv','w',newline='',encoding='utf-8',)as f:
     csv_writer = csv.writer(f)
     for i in data1.find():
@@ -69,7 +70,7 @@ with open(r'et.csv','w',newline='',encoding='utf-8',)as f:
                     data['涨跌幅'] = j['f3']/100
                     data['涨跌额'] = j['f4']/1000
                     data['成交量'] = j['f5']/10000 if not j['f5'] == '-' else 0
-                    data['成交额'] = j['f6']/10000 if not j['f6'] == "-" else 0
+                    data['成交额'] = j['f6']/100000000 if not j['f6'] == "-" else 0
                     # data['代码'] = j['f12']
                     # data['名称'] = j['f14']
                     data['最高价'] = j['f15']/1000 if not j['f5'] == '-' else 0
