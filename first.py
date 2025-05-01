@@ -39,7 +39,7 @@ def get_data_daily(pn):
     wb_data_split = json.loads(data[0])
     wb_data_split['time'] = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())
     wb_data_split['date'] = time.strftime("%Y-%m-%d",time.localtime())
-    data1.insert_one(wb_data_split)
+    #data1.insert_one(wb_data_split)
     return wb_data_split
     #wb_data_split的数据居然变了
     # t1 = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())
@@ -52,6 +52,7 @@ def datatomysql(pn):
     datasplit = get_data_daily(pn)
     print(datasplit)
     for j in datasplit['data']['diff']:
+        print(j)
         data  = {}
         # data['time'] = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())
         # data['date'] = time.strftime("%Y-%m-%d",time.localtime())
@@ -70,9 +71,9 @@ def datatomysql(pn):
         #print(len(wb_data_split['data']['diff']))
         data['代码'] = j['f12']
         data['名称'] = j['f14']
-        data['最新价'] = j['f2']/1000
-        data['涨跌幅'] = j['f3']/100
-        data['涨跌额'] = j['f4']/1000
+        data['最新价'] = j['f2']/1000 if not j['f2'] == '-' else 0
+        data['涨跌幅'] = j['f3']/100 if not j['f3'] == '-' else 0
+        data['涨跌额'] = j['f4']/1000 if not j['f4'] == '-' else 0
         data['成交量'] = j['f5']/10000 if not j['f5'] == '-' else 0
         data['成交额'] = j['f6']/100000000 if not j['f6'] == "-" else 0
         data['最高价'] = j['f15']/1000 if not j['f5'] == '-' else 0
@@ -95,7 +96,6 @@ def datatomysql(pn):
         except Exception as e:
             conn.rollback()
             print(f"字典插入失败: {e}")
-
 
 #print(json.dumps(json.loads(data[0]),ensure_ascii=False,indent=2))
 for i in range(1,13):
